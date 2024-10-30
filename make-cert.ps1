@@ -1,3 +1,10 @@
+# Ensure administrator privileges
+if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
+    Write-Host "Restarting script with administrator privileges..." -ForegroundColor Yellow
+    Start-Process PowerShell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
+    exit	
+}
+
 $store = 'Cert:\LocalMachine\My'
 $params = @{
 	Type = 'Custom'
@@ -16,8 +23,15 @@ $params = @{
 	NotAfter = (Get-Date).AddMonths(9999)
 	CertStoreLocation = $store
 }
-(New-SelfSignedCertificate @params).Thumbprint
 
-# $path = "$store\$((New-SelfSignedCertificate @params).Thumbprint)"
-# Export-PfxCertificate -Cert $path -FilePath "sxs.pfx" -Password '1' -NoProperties
-# Get-ChildItem $path | Remove-Item -Force
+# Create the certificate and store its thumbprint
+$thumbprint = (New-SelfSignedCertificate @params).Thumbprint
+
+# Check if certificate exists
+if (Get-ChildItem -Path $store | Where-Object { $_.Thumbprint -eq $thumbprint }) {
+    Write-Host "Certificate created with Thumbprint: $thumbprint" -ForegroundColor Green
+} else {
+    Write-Host "Failed to create certificate" -ForegroundColor Red
+}
+
+pause
