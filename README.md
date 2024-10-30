@@ -1,5 +1,5 @@
 # sxsc
-A fork of [`echnobas`/sxsc](https://github.com/echnobas/sxsc) (the SxS compiler - pronounced sxs-see) for use in automatic package building for [Atlas](https://github.com/Atlas-OS/Atlas/tree/main/src/sxsc) and RapidOS.
+A fork of [`echnobas`/sxsc](https://github.com/echnobas/sxsc) (the SxS compiler - pronounced sxs-see) for use in automatic package building for [Atlas](https://github.com/Atlas-OS/Atlas) and [RapidOS](https://github.com/rapid-community/RapidOS).
 
 GNU General Public License v3.0 [license](https://github.com/echnobas/sxsc/blob/a45c5f321153a0dd33266cb35fce3effac7212ad/LICENSE).
 
