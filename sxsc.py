@@ -1,4 +1,13 @@
-import yaml, havesxs, uuid, hashlib, base64, os, tempfile
+import os
+import yaml
+import havesxs
+import uuid
+import hashlib
+import base64
+import tempfile
+import tkinter as tk
+from tkinter import filedialog
+import subprocess
 
 # FXEFqZQLNdyPGADgoUdluRUTzVkGUI/H7FOiuNUDjuk=
 PUBLIC_KEY_TOKEN = "31bf3856ad364e35"
@@ -29,16 +38,14 @@ class Update:
         self.standalone = standalone
 
     def generate_component_sxs(self):
-        return havesxs.generate_sxs_name(
-            {
-                "name": self.target_component,
-                "culture": "none",
-                "version": self.version,
-                "publicKeyToken": self.public_key_token,
-                "processorArchitecture": self.target_arch,
-                "versionScope": self.version_scope,
-            }
-        )
+        return havesxs.generate_sxs_name({
+            "name": self.target_component,
+            "culture": "none",
+            "version": self.version,
+            "publicKeyToken": self.public_key_token,
+            "processorArchitecture": self.target_arch,
+            "versionScope": self.version_scope,
+        })
 
     def generate_component_manifest(self):
         global tempDir
@@ -89,19 +96,17 @@ class Update:
             files_list
         ]
 
-    def generate_update_sxs(self, culture = "none"):
-        return havesxs.generate_sxs_name(
-            {
-                "name": self.identifier,
-                "culture": culture,
-                "version": self.version,
-                "publicKeyToken": self.public_key_token,
-                "processorArchitecture": self.target_arch,
-                "versionScope": self.version_scope,
-            }
-        )
+    def generate_update_sxs(self, culture="none"):
+        return havesxs.generate_sxs_name({
+            "name": self.identifier,
+            "culture": culture,
+            "version": self.version,
+            "publicKeyToken": self.public_key_token,
+            "processorArchitecture": self.target_arch,
+            "versionScope": self.version_scope,
+        })
 
-    def generate_update_manifest(self, discoverable = False):
+    def generate_update_manifest(self, discoverable=False):
         return f"""<?xml version="1.0" encoding="utf-8" standalone="{self.standalone}"?><assembly xmlns="urn:schemas-microsoft-com:asm.v3" manifestVersion="1.0" copyright="{self.copyright}"><assemblyIdentity name="{self.identifier}" version="{self.version}" processorArchitecture="{self.target_arch}" language="neutral" buildType="release" publicKeyToken="{self.public_key_token}" versionScope="{self.version_scope}"/><deployment xmlns="urn:schemas-microsoft-com:asm.v3"/><dependency discoverable=\"{"true" if discoverable else "false"}\"><dependentAssembly dependencyType="install"><assemblyIdentity name="{self.target_component}" version="{self.version}" processorArchitecture="{self.target_arch}" language="neutral" buildType="release" publicKeyToken="{self.public_key_token}" versionScope="{self.version_scope}"/></dependentAssembly></dependency></assembly>"""
 
 
@@ -124,9 +129,38 @@ class MicrosoftUpdateManifest:
     def generate_mum_update(self, update):
         return f"""<update name="{update.identifier}"><component><assemblyIdentity name="{update.identifier}" version="{update.version}" processorArchitecture="{update.target_arch}" language="neutral" buildType="release" publicKeyToken="{update.public_key_token}" versionScope="{update.version_scope}"/></component></update>"""
 
+def find_config_file():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    cfg_files = [f for f in os.listdir(script_dir) if f.startswith("cfg") and f.endswith(".yaml")]
+    return cfg_files
 
-with open("cfg.yaml", "r") as f:
-    config = yaml.safe_load(f)
+def select_config_file():
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+    file_path = filedialog.askopenfilename(title="Select Configuration File", filetypes=[("YAML files", "*.yaml")])
+    return file_path
+
+config_files = find_config_file()
+
+if len(config_files) > 1:
+    print("Multiple configuration files found. Please select one.")
+    config_path = select_config_file()
+elif len(config_files) == 1:
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), config_files[0])
+else:
+    print("No configuration file found in the script's directory. Please select the path to your YAML configuration file.")
+    config_path = select_config_file()
+
+if config_path:
+    try:
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+    except FileNotFoundError:
+        print("Error: Configuration file not found. Please ensure the file path is correct.")
+        exit(1)
+    except yaml.YAMLError as e:
+        print(f"Error: Problem loading YAML file: {e}")
+        exit(1)
 
 # Staging Arena
 staged_updates = []
@@ -183,17 +217,26 @@ HashAlgorithms=SHA256
     for (i, filename) in enumerate(filter(lambda f: f != "update.cat", staged_files)):
         f.write(f"<HASH>F{i+1}={filename}\n")
 
-with open(".\\start-build.ps1", "w+") as f:
-    f.write(f"""param (
-	[Parameter( Mandatory = $True )]
-	[string]$Thumbprint
+# Generate Thumbprint
+print("To create a thumbprint, please run 'make-cert.ps1' as an administrator in PowerShell.")
+
+thumbprint = input("Enter the thumbprint generated: ")
+
+# Create PowerShell script code directly in Python
+build_script = f"""param (
+    [Parameter(Mandatory = $True)]
+    [string]$Thumbprint,
+    [string]$CabName
 )
 
-.\\build.ps1 -Thumbprint $Thumbprint -CabName '{config['package']}{PUBLIC_KEY_TOKEN}{config['target_arch']}{config['version']}.cab'""")
+# Call build script with thumbprint
+Start-Process powershell -ArgumentList '-ExecutionPolicy Bypass -File .\\build.ps1 -Thumbprint {thumbprint} -CabName "{config['package']}{PUBLIC_KEY_TOKEN}{config['target_arch']}{config['version']}.cab"'
+"""
 
-if not tempDir == None:
-    with open(".\\start-build.ps1", 'a') as f:
-        f.write(f"""\n
-Write-Output "Deleting temp folder..."
-Remove-Item -Path '{tempDir}' -Force -Recurse
-""")
+with open("build-script.ps1", "w+") as f:
+    f.write(build_script)
+
+# Run PowerShell script in a separate window
+subprocess.run(["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", "build-script.ps1", "-Thumbprint", thumbprint], creationflags=subprocess.CREATE_NEW_CONSOLE)
+
+print("Processing complete. You may close this window.")
