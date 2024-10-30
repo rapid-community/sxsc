@@ -15,4 +15,5 @@ if ($Thumbprint) {
 	".\disk1\*",
 	".\disk1",
 	"*.cab"
+        "__pycache__"
 ) | ForEach-Object { Remove-Item -Path $_ -Recurse -Force -EA 0 }
