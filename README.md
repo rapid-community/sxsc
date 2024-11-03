@@ -1,9 +1,9 @@
 # sxsc
-A fork of [`echnobas`/sxsc](https://github.com/echnobas/sxsc) (the SxS compiler - pronounced sxs-see) for use in automatic package building for [Atlas](https://github.com/Atlas-OS/Atlas) and [RapidOS](https://github.com/rapid-community/RapidOS).
+A fork of [`echnobas`/sxsc](https://github.com/echnobas/sxsc) (the SxS compiler - pronounced sxs-see) for use in automatic package building for [Atlas](https://github.com/Atlas-OS/Atlas).
 
 GNU General Public License v3.0 [license](https://github.com/echnobas/sxsc/blob/a45c5f321153a0dd33266cb35fce3effac7212ad/LICENSE).
 
-### He3als Changes
+### General Changes
 - Removed [`gullible_installer.ps1`](https://github.com/echnobas/sxsc/blob/master/gullible_installer.ps1)
   - Not needed for building
   - [`online-sxs.cmd`](https://github.com/he3als/online-sxs) is used instead
@@ -13,10 +13,9 @@ GNU General Public License v3.0 [license](https://github.com/echnobas/sxsc/blob/
   - Removed binaries:  `makecab, makecat, signtool`, use Windows Kit
 - Add `requirements.txt`
 - Files support
-
-### Instead1337 Changes
 - Enhanced `sxsc.py` for better usability by adding a search for any configuration files that start with `cfg` and end with `.yaml`. If multiple files are found, a file explorer prompts the user to select one.
 - In `build.ps1` implemented a smart system to locate Windows Kit subfolders containing Windows build names, along with various qol improvements.
+
 And other little changes...
 
 >[!Important]
